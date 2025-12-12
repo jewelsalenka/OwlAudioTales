@@ -1,0 +1,15 @@
+<resources>
+    <string name="app_name">OwlAudioTales</string>
+    <string name="close">Close</string>
+    <string name="go_to_settings">Go to settings</string>
+    <string name="record_permission_is_needed_for_audio_recording">Record permission is needed for audio recording. Please enable it in your device settings.</string>
+    <string name="permission_required">Permission required</string>
+    <string name="save">Save</string>
+    <string name="take_a_photo">Take a photo</string>
+    <string name="cancel">Cancel</string>
+    <string name="edit">Edit</string>
+    <string name="authors_name">Author\'s name</string>
+    <string name="title">Title</string>
+    <string name="welcome_to_owlaudiotales">Welcome to OwlAudioTales!</string>
+    <string name="get_started">Get Started</string>
+</resources>
