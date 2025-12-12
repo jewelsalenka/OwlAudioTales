@@ -1,0 +1,31 @@
+# Android/IntelliJ
+.idea/
+.gradle/
+local.properties
+*.iml
+*.apk
+*.ap_
+
+# Build
+/build/
+/app/build/
+
+# Kotlin
+*.class
+*.log
+*.jar
+*.war
+*.ear
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Android Studio native autocomplete
+.cxx/
+
+# Room schema (якщо не використовуєш контроль версій схем)
+schemas/
+
+# Google Services
+/google-services.json
