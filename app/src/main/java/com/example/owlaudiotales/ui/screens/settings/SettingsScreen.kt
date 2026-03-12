@@ -1,6 +1,5 @@
 package com.example.owlaudiotales.ui.screens.settings
 
-import android.content.Context
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -12,22 +11,16 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.navigation.NavController
-import androidx.compose.runtime.getValue
-import androidx.compose.ui.platform.LocalContext
-import androidx.lifecycle.viewmodel.compose.viewModel
-import com.example.owlaudiotales.datastore.SettingsDataStore
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 
 @Composable
-fun SettingsScreen(navController: NavController, context: Context = LocalContext.current) {
-    val viewModel: SettingsViewModel = viewModel(
-        factory = SettingsViewModelFactory(SettingsDataStore(context))
-    )
-
+fun SettingsScreen() {
+    val viewModel: SettingsViewModel = hiltViewModel()
     val state by viewModel.state.collectAsState()
 
     Column(Modifier.padding(16.dp)) {

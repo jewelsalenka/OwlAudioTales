@@ -14,21 +14,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.core.app.ActivityCompat
-import androidx.lifecycle.viewmodel.compose.viewModel
-import com.example.owlaudiotales.data.local.AudioDao
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import java.io.File
 
 @Composable
-fun RecordScreen(
-    recordingsDir: File,
-    audioDao: AudioDao
-) {
+fun RecordScreen() {
     val context = LocalContext.current
     val activity = (context as? Activity)
-    val recordingsDir = File(context.filesDir, "recordings")
-    val viewModel: RecordViewModel = viewModel(
-        factory = RecordViewModelFactory(recordingsDir, audioDao)
-    )
+    val viewModel: RecordViewModel = hiltViewModel()
 
     var showPermissionDialog by remember { mutableStateOf(false) }
     var showMetadataDialog by remember { mutableStateOf(false) }
@@ -122,7 +115,6 @@ fun RecordScreen(
                     showMetadataDialog = false
                 },
                 onSave = { title, author, coverPath ->
-                    // Тут буде вставка в базу (Room)
                     Toast.makeText(context, "Казку $title збережено", Toast.LENGTH_SHORT).show()
                     viewModel.saveMetadata(title, author, coverPath)
                     showMetadataDialog = false

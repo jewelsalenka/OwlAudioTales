@@ -3,11 +3,16 @@ package com.example.owlaudiotales.ui.screens.welcome
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.owlaudiotales.datastore.SettingsDataStore
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
-class WelcomeViewModel(private val settingsDataStore: SettingsDataStore) : ViewModel() {
+@HiltViewModel
+class WelcomeViewModel @Inject constructor(
+    private val settingsDataStore: SettingsDataStore
+) : ViewModel() {
 
     private val _startDestination = MutableStateFlow<String>("")
     val startDestination: StateFlow<String> = _startDestination
