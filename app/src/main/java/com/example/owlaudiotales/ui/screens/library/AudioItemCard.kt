@@ -75,6 +75,7 @@ fun AudioItemCard(
                         contentScale = ContentScale.Crop
                     )
                 }
+                    modifier = Modifier
 
                 Spacer(modifier = Modifier.width(12.dp))
 
