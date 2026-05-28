@@ -12,16 +12,19 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.core.app.ActivityCompat
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.example.owlaudiotales.R
 
 @Composable
 fun RecordScreen() {
     val context = LocalContext.current
     val activity = context as? Activity
     val viewModel: RecordViewModel = hiltViewModel()
-    val state by viewModel.state.collectAsState()
+    val state by viewModel.state.collectAsStateWithLifecycle()
 
     LaunchedEffect(state.errorMessage) {
         state.errorMessage?.let {
@@ -58,26 +61,26 @@ fun RecordScreen() {
             state.isRecording && !state.isPaused -> {
                 Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                     Button(onClick = { viewModel.onEvent(RecordEvent.PauseRecording) }) {
-                        Text("Пауза")
+                        Text(stringResource(R.string.record_pause))
                     }
                     Button(onClick = {
                         viewModel.onEvent(RecordEvent.StopRecording)
                         showMetadataDialog = true
                     }) {
-                        Text("Зупинити")
+                        Text(stringResource(R.string.record_stop))
                     }
                 }
             }
             state.isRecording && state.isPaused -> {
                 Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                     Button(onClick = { viewModel.onEvent(RecordEvent.ResumeRecording) }) {
-                        Text("Продовжити")
+                        Text(stringResource(R.string.record_resume))
                     }
                     Button(onClick = {
                         viewModel.onEvent(RecordEvent.StopRecording)
                         showMetadataDialog = true
                     }) {
-                        Text("Зупинити")
+                        Text(stringResource(R.string.record_stop))
                     }
                 }
             }
@@ -85,7 +88,7 @@ fun RecordScreen() {
                 Button(onClick = {
                     permissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
                 }) {
-                    Text("Записати")
+                    Text(stringResource(R.string.record_start))
                 }
             }
         }
@@ -93,7 +96,7 @@ fun RecordScreen() {
         Spacer(modifier = Modifier.height(24.dp))
 
         if (state.filePath != null && !state.isRecording) {
-            Text("Файл збережено: ${state.filePath}")
+            Text(stringResource(R.string.file_saved_format, state.filePath!!))
         }
     }
 
@@ -111,7 +114,7 @@ fun RecordScreen() {
                 showMetadataDialog = false
             },
             onSave = { title, author, coverPath ->
-                Toast.makeText(context, "Казку $title збережено", Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, context.getString(R.string.fairy_tale_saved_format, title), Toast.LENGTH_SHORT).show()
                 viewModel.saveMetadata(title, author, coverPath)
                 showMetadataDialog = false
             }

@@ -48,20 +48,20 @@ fun RecordMetadataDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Зберегти казку") },
+        title = { Text(stringResource(R.string.save_fairy_tale)) },
         text = {
             Column(modifier = Modifier.fillMaxWidth()) {
                 OutlinedTextField(
                     value = title,
                     onValueChange = { title = it },
-                    label = { Text("Назва казки") },
+                    label = { Text(stringResource(R.string.fairy_tale_name_label)) },
                     modifier = Modifier.fillMaxWidth()
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 OutlinedTextField(
                     value = author,
                     onValueChange = { author = it },
-                    label = { Text("Ім’я автора") },
+                    label = { Text(stringResource(R.string.author_name_label)) },
                     modifier = Modifier.fillMaxWidth()
                 )
                 Spacer(modifier = Modifier.height(12.dp))
@@ -70,7 +70,7 @@ fun RecordMetadataDialog(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Button(onClick = { imageLauncher.launch(null) }) {
-                        Text("Додати фото")
+                        Text(stringResource(R.string.add_photo))
                     }
                     Spacer(modifier = Modifier.width(12.dp))
                     selectedImageBitmap?.let { bitmap ->

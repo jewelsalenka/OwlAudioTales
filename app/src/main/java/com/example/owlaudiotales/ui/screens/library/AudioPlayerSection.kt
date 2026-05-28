@@ -8,6 +8,15 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.tooling.preview.Preview
+import com.example.owlaudiotales.R
+
+@Preview(showBackground = true)
+@Composable
+private fun AudioPlayerSectionPreview() {
+    AudioPlayerSection(isPlaying = false, onPlayPause = {}, onNext = {}, onPrevious = {})
+}
 
 @Composable
 fun AudioPlayerSection(
@@ -22,15 +31,15 @@ fun AudioPlayerSection(
             horizontalArrangement = Arrangement.SpaceEvenly
         ) {
             Button(onClick = onPrevious) {
-                Text("⏮")
+                Text(stringResource(R.string.player_previous))
             }
 
             Button(onClick = onPlayPause) {
-                Text(if (isPlaying) "⏸" else "▶")
+                Text(stringResource(if (isPlaying) R.string.player_pause else R.string.player_play))
             }
 
             Button(onClick = onNext) {
-                Text("⏭")
+                Text(stringResource(R.string.player_next))
             }
         }
     }

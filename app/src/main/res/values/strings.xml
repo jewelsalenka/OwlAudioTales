@@ -1,15 +1,61 @@
 <resources>
     <string name="app_name">OwlAudioTales</string>
+
+    <!-- Permissions -->
     <string name="close">Close</string>
     <string name="go_to_settings">Go to settings</string>
     <string name="record_permission_is_needed_for_audio_recording">Record permission is needed for audio recording. Please enable it in your device settings.</string>
     <string name="permission_required">Permission required</string>
+
+    <!-- Common actions -->
     <string name="save">Save</string>
-    <string name="take_a_photo">Take a photo</string>
     <string name="cancel">Cancel</string>
     <string name="edit">Edit</string>
-    <string name="authors_name">Author\'s name</string>
-    <string name="title">Title</string>
+    <string name="action_edit">Редагувати</string>
+    <string name="action_delete">Видалити</string>
+
+    <!-- Welcome -->
     <string name="welcome_to_owlaudiotales">Welcome to OwlAudioTales!</string>
     <string name="get_started">Get Started</string>
+
+    <!-- Record screen -->
+    <string name="record_start">Записати</string>
+    <string name="record_pause">Пауза</string>
+    <string name="record_resume">Продовжити</string>
+    <string name="record_stop">Зупинити</string>
+    <string name="file_saved_format">Файл збережено: %s</string>
+    <string name="fairy_tale_saved_format">Казку %s збережено</string>
+
+    <!-- Record metadata dialog -->
+    <string name="save_fairy_tale">Зберегти казку</string>
+    <string name="fairy_tale_name_label">Назва казки</string>
+    <string name="author_name_label">Ім\'я автора</string>
+    <string name="authors_name">Author\'s name</string>
+    <string name="title">Title</string>
+    <string name="take_a_photo">Take a photo</string>
+    <string name="add_photo">Додати фото</string>
+
+    <!-- Library -->
+    <string name="author_format">Автор: %s</string>
+    <string name="duration_format">Тривалість: %d сек</string>
+
+    <!-- Player -->
+    <string name="player_previous">⏮</string>
+    <string name="player_play">▶</string>
+    <string name="player_pause">⏸</string>
+    <string name="player_next">⏭</string>
+
+    <!-- Settings -->
+    <string name="settings_title">Settings</string>
+    <string name="setting_child_mode">Child Mode</string>
+    <string name="setting_autoplay_next">Autoplay next</string>
+    <string name="setting_background_music">Background music</string>
+    <string name="sleep_timer_format">Sleep Timer: %d minutes</string>
+
+    <!-- Errors -->
+    <string name="error_recording_start">Помилка запису: %s</string>
+    <string name="error_recording_pause">Помилка паузи: %s</string>
+    <string name="error_recording_resume">Помилка відновлення: %s</string>
+    <string name="error_recording_stop">Помилка зупинки: %s</string>
+    <string name="error_mic_permission_denied">Дозвіл на мікрофон не надано</string>
 </resources>

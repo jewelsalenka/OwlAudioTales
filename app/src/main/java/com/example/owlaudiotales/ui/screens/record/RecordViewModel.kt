@@ -5,6 +5,7 @@ import android.media.MediaRecorder
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.owlaudiotales.R
 import com.example.owlaudiotales.data.local.AudioDao
 import com.example.owlaudiotales.model.AudioItem
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -19,7 +20,7 @@ import javax.inject.Inject
 
 @HiltViewModel
 class RecordViewModel @Inject constructor(
-    @ApplicationContext context: Context,
+    @ApplicationContext private val context: Context,
     private val audioDao: AudioDao
 ) : ViewModel() {
 
@@ -68,7 +69,7 @@ class RecordViewModel @Inject constructor(
                 it.copy(isRecording = true, isPaused = false, filePath = outputFile!!.absolutePath)
             }
         } catch (e: Exception) {
-            _state.update { it.copy(errorMessage = "Помилка запису: ${e.message}") }
+            _state.update { it.copy(errorMessage = context.getString(R.string.error_recording_start, e.message ?: "")) }
             Log.e("RecordVM", "Start error", e)
         }
     }
@@ -79,7 +80,7 @@ class RecordViewModel @Inject constructor(
             pauseStartTime = System.currentTimeMillis()
             _state.update { it.copy(isPaused = true) }
         } catch (e: Exception) {
-            _state.update { it.copy(errorMessage = "Помилка паузи: ${e.message}") }
+            _state.update { it.copy(errorMessage = context.getString(R.string.error_recording_pause, e.message ?: "")) }
         }
     }
 
@@ -89,7 +90,7 @@ class RecordViewModel @Inject constructor(
             accumulatedPauseMs += System.currentTimeMillis() - pauseStartTime
             _state.update { it.copy(isPaused = false) }
         } catch (e: Exception) {
-            _state.update { it.copy(errorMessage = "Помилка відновлення: ${e.message}") }
+            _state.update { it.copy(errorMessage = context.getString(R.string.error_recording_resume, e.message ?: "")) }
         }
     }
 
@@ -106,7 +107,7 @@ class RecordViewModel @Inject constructor(
                 it.copy(isRecording = false, isPaused = false, errorMessage = null)
             }
         } catch (e: Exception) {
-            _state.update { it.copy(errorMessage = "Помилка зупинки: ${e.message}") }
+            _state.update { it.copy(errorMessage = context.getString(R.string.error_recording_stop, e.message ?: "")) }
         }
     }
 
@@ -117,7 +118,7 @@ class RecordViewModel @Inject constructor(
 
     private fun handlePermissionDenied(canShowRationale: Boolean) {
         if (canShowRationale) {
-            _state.update { it.copy(errorMessage = "Дозвіл на мікрофон не надано") }
+            _state.update { it.copy(errorMessage = context.getString(R.string.error_mic_permission_denied)) }
         } else {
             _state.update { it.copy(showPermissionSettings = true) }
         }

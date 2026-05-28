@@ -12,16 +12,17 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.example.owlaudiotales.R
 import com.example.owlaudiotales.model.AudioItem
@@ -47,7 +48,7 @@ fun AudioItemCard(
             Row(verticalAlignment = Alignment.CenterVertically) {
                 AsyncImage(
                     model = audio.coverImagePath,
-                    contentDescription = null,
+                    contentDescription = audio.title,
                     modifier = Modifier
                         .size(64.dp)
                         .clip(RoundedCornerShape(8.dp)),
@@ -59,12 +60,16 @@ fun AudioItemCard(
                 Spacer(modifier = Modifier.width(12.dp))
 
                 Column {
-                    Text(text = audio.title, fontSize = 18.sp)
-                    Text(text = "Автор: ${audio.author}", fontSize = 14.sp, color = Color.Gray)
+                    Text(text = audio.title, style = MaterialTheme.typography.titleMedium)
                     Text(
-                        text = "Тривалість: ${audio.duration} сек",
-                        fontSize = 12.sp,
-                        color = Color.Gray
+                        text = stringResource(R.string.author_format, audio.author),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Text(
+                        text = stringResource(R.string.duration_format, audio.duration),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }
@@ -81,4 +86,24 @@ fun AudioItemCard(
             }
         }
     }
+}
+
+@Preview(showBackground = true)
+@Composable
+private fun AudioItemCardPreview() {
+    AudioItemCard(
+        audio = AudioItem(
+            title = "Казка про Котика",
+            author = "Іванка Франко",
+            filePath = "",
+            duration = 300,
+            createdAt = 0L
+        ),
+        isActive = true,
+        isPlaying = false,
+        onClick = {},
+        onPlayPause = {},
+        onNext = {},
+        onPrevious = {}
+    )
 }
