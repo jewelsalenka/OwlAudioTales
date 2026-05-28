@@ -15,17 +15,22 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.core.app.ActivityCompat
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
-import java.io.File
 
 @Composable
 fun RecordScreen() {
     val context = LocalContext.current
-    val activity = (context as? Activity)
+    val activity = context as? Activity
     val viewModel: RecordViewModel = hiltViewModel()
+    val state by viewModel.state.collectAsState()
 
-    var showPermissionDialog by remember { mutableStateOf(false) }
+    LaunchedEffect(state.errorMessage) {
+        state.errorMessage?.let {
+            Toast.makeText(context, it, Toast.LENGTH_SHORT).show()
+            viewModel.onEvent(RecordEvent.ClearError)
+        }
+    }
+
     var showMetadataDialog by remember { mutableStateOf(false) }
-    var lastFilePath by remember { mutableStateOf<String?>(null) }
 
     val permissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission(),
@@ -33,20 +38,14 @@ fun RecordScreen() {
             if (granted) {
                 viewModel.onEvent(RecordEvent.StartRecording)
             } else {
-                val showRationale = ActivityCompat.shouldShowRequestPermissionRationale(
+                val canShowRationale = ActivityCompat.shouldShowRequestPermissionRationale(
                     activity ?: return@rememberLauncherForActivityResult,
                     Manifest.permission.RECORD_AUDIO
                 )
-                if (!showRationale) {
-                    showPermissionDialog = true
-                } else {
-                    Toast.makeText(context, "Дозвіл на мікрофон не надано", Toast.LENGTH_SHORT).show()
-                }
+                viewModel.onEvent(RecordEvent.PermissionDenied(canShowRationale))
             }
         }
     )
-
-    val state by viewModel.state.collectAsState()
 
     Column(
         modifier = Modifier
@@ -62,7 +61,6 @@ fun RecordScreen() {
                         Text("Пауза")
                     }
                     Button(onClick = {
-                        lastFilePath = state.filePath
                         viewModel.onEvent(RecordEvent.StopRecording)
                         showMetadataDialog = true
                     }) {
@@ -76,7 +74,6 @@ fun RecordScreen() {
                         Text("Продовжити")
                     }
                     Button(onClick = {
-                        lastFilePath = state.filePath
                         viewModel.onEvent(RecordEvent.StopRecording)
                         showMetadataDialog = true
                     }) {
@@ -86,7 +83,7 @@ fun RecordScreen() {
             }
             else -> {
                 Button(onClick = {
-                    permissionLauncher.launch(android.Manifest.permission.RECORD_AUDIO)
+                    permissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
                 }) {
                     Text("Записати")
                 }
@@ -98,28 +95,26 @@ fun RecordScreen() {
         if (state.filePath != null && !state.isRecording) {
             Text("Файл збережено: ${state.filePath}")
         }
+    }
 
-        state.errorMessage?.let { msg ->
-            Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
-        }
+    if (state.showPermissionSettings) {
+        RecordPermissionDialog(
+            context = context,
+            onDismiss = { viewModel.onEvent(RecordEvent.DismissPermissionSettings) }
+        )
+    }
 
-        if (showPermissionDialog) {
-            RecordPermissionDialog(context = context) {
-                showPermissionDialog = false
+    if (showMetadataDialog) {
+        RecordMetadataDialog(
+            onDismiss = {
+                viewModel.onEvent(RecordEvent.DiscardRecording)
+                showMetadataDialog = false
+            },
+            onSave = { title, author, coverPath ->
+                Toast.makeText(context, "Казку $title збережено", Toast.LENGTH_SHORT).show()
+                viewModel.saveMetadata(title, author, coverPath)
+                showMetadataDialog = false
             }
-        }
-        if (showMetadataDialog && lastFilePath != null) {
-            RecordMetadataDialog(
-                onDismiss = {
-                    lastFilePath?.let { File(it).delete() }
-                    showMetadataDialog = false
-                },
-                onSave = { title, author, coverPath ->
-                    Toast.makeText(context, "Казку $title збережено", Toast.LENGTH_SHORT).show()
-                    viewModel.saveMetadata(title, author, coverPath)
-                    showMetadataDialog = false
-                }
-            )
-        }
+        )
     }
 }

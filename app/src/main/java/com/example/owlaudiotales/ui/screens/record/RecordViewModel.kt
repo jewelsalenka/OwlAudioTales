@@ -42,7 +42,11 @@ class RecordViewModel @Inject constructor(
             is RecordEvent.PauseRecording -> pauseRecording()
             is RecordEvent.ResumeRecording -> resumeRecording()
             is RecordEvent.StopRecording -> stopRecording()
-            is RecordEvent.RecordingFailed -> _state.value = _state.value.copy(errorMessage = event.message)
+            is RecordEvent.DiscardRecording -> discardRecording()
+            is RecordEvent.ClearError -> _state.update { it.copy(errorMessage = null) }
+            is RecordEvent.DismissPermissionSettings -> _state.update { it.copy(showPermissionSettings = false) }
+            is RecordEvent.RecordingFailed -> _state.update { it.copy(errorMessage = event.message) }
+            is RecordEvent.PermissionDenied -> handlePermissionDenied(event.canShowRationale)
         }
     }
 
@@ -103,6 +107,19 @@ class RecordViewModel @Inject constructor(
             }
         } catch (e: Exception) {
             _state.update { it.copy(errorMessage = "Помилка зупинки: ${e.message}") }
+        }
+    }
+
+    private fun discardRecording() {
+        state.value.filePath?.let { File(it).delete() }
+        _state.update { it.copy(filePath = null) }
+    }
+
+    private fun handlePermissionDenied(canShowRationale: Boolean) {
+        if (canShowRationale) {
+            _state.update { it.copy(errorMessage = "Дозвіл на мікрофон не надано") }
+        } else {
+            _state.update { it.copy(showPermissionSettings = true) }
         }
     }
 
