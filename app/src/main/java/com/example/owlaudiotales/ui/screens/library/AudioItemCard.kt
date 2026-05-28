@@ -47,35 +47,16 @@ fun AudioItemCard(
     ) {
         Column(modifier = Modifier.padding(12.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                val imageBitmap = remember(audio.coverImagePath) {
-                    audio.coverImagePath?.let { path ->
-                        val file = File(path)
-                        if (file.exists()) {
-                            BitmapFactory.decodeFile(file.absolutePath)?.asImageBitmap()
-                        } else null
-                    }
-                }
-
-                if (imageBitmap != null) {
-                    Image(
-                        bitmap = imageBitmap,
-                        contentDescription = null,
-                        modifier = Modifier
-                            .size(64.dp)
-                            .clip(RoundedCornerShape(8.dp)),
-                        contentScale = ContentScale.Crop
-                    )
-                } else {
-                    Image(
-                        painter = painterResource(id = R.drawable.placeholder_image),
-                        contentDescription = null,
-                        modifier = Modifier
-                            .size(64.dp)
-                            .clip(RoundedCornerShape(8.dp)),
-                        contentScale = ContentScale.Crop
-                    )
-                }
+                AsyncImage(
+                    model = audio.coverImagePath,
+                    contentDescription = null,
                     modifier = Modifier
+                        .size(64.dp)
+                        .clip(RoundedCornerShape(8.dp)),
+                    contentScale = ContentScale.Crop,
+                    error = painterResource(id = R.drawable.placeholder_image),
+                    placeholder = painterResource(id = R.drawable.placeholder_image)
+                )
 
                 Spacer(modifier = Modifier.width(12.dp))
 
