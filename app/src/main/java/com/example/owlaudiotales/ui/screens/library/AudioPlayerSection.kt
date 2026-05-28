@@ -53,8 +53,8 @@ fun AudioPlayerSection(
                     if (file.exists()) {
                         mediaPlayer = MediaPlayer().apply {
                             setDataSource(file.absolutePath)
-                            prepare()
-                            start()
+                            setOnPreparedListener { it.start() }
+                            prepareAsync()
                         }
                         isPlaying = true
                     }
