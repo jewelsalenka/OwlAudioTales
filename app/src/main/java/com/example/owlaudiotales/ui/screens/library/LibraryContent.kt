@@ -24,7 +24,9 @@ import com.example.owlaudiotales.model.AudioItem
 fun LibraryContent(
     audioList: List<AudioItem>,
     activeId: Long?,
+    isPlaying: Boolean,
     onClick: (Long) -> Unit,
+    onPlayPause: (String) -> Unit,
     onNext: () -> Unit,
     onPrevious: () -> Unit,
     onDelete: (AudioItem) -> Unit,
@@ -86,9 +88,11 @@ fun LibraryContent(
                         AudioItemCard(
                             audio = audio,
                             isActive = activeId == audio.id,
+                            isPlaying = isPlaying && activeId == audio.id,
                             onClick = { onClick(audio.id) },
+                            onPlayPause = { onPlayPause(audio.filePath) },
                             onNext = { onNext() },
-                            { onPrevious() }
+                            onPrevious = { onPrevious() }
                         )
                     }
                 )

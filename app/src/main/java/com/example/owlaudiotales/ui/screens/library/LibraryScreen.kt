@@ -15,6 +15,7 @@ fun LibraryScreen() {
 
     val audioList = viewModel.audioList.collectAsStateWithLifecycle().value
     val activeId = viewModel.activeAudioId.collectAsStateWithLifecycle().value
+    val isPlaying = viewModel.isPlaying.collectAsStateWithLifecycle().value
 
     var showEditDialog by remember { mutableStateOf(false) }
     var editingAudio by remember { mutableStateOf<AudioItem?>(null) }
@@ -22,7 +23,9 @@ fun LibraryScreen() {
     LibraryContent(
         audioList = audioList,
         activeId = activeId,
+        isPlaying = isPlaying,
         onClick = viewModel::onAudioClicked,
+        onPlayPause = viewModel::onPlayPauseClicked,
         onNext = viewModel::playNext,
         onPrevious = viewModel::playPrevious,
         onDelete = viewModel::deleteAudio,
