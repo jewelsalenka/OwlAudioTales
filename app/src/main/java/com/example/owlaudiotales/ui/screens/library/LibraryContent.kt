@@ -57,25 +57,37 @@ fun LibraryContent(
                 enableDismissFromStartToEnd = true,
                 enableDismissFromEndToStart = true,
                 backgroundContent = {
-                    val color = when (dismissState.targetValue) {
+                    val offset = try { dismissState.requireOffset() } catch (e: IllegalStateException) { 0f }
+                    val swipeDirection = when {
+                        offset > 0f -> SwipeToDismissBoxValue.StartToEnd
+                        offset < 0f -> SwipeToDismissBoxValue.EndToStart
+                        else -> SwipeToDismissBoxValue.Settled
+                    }
+                    val color = when (swipeDirection) {
                         SwipeToDismissBoxValue.StartToEnd -> Color(0xFF1976D2)
                         SwipeToDismissBoxValue.EndToStart -> Color(0xFFD32F2F)
                         SwipeToDismissBoxValue.Settled -> Color.Transparent
                     }
-                    val isEditAction = dismissState.targetValue == SwipeToDismissBoxValue.StartToEnd
                     Box(
                         modifier = Modifier
                             .fillMaxSize()
                             .background(color)
                             .padding(horizontal = 20.dp),
-                        contentAlignment = if (isEditAction) Alignment.CenterStart else Alignment.CenterEnd
+                        contentAlignment = if (swipeDirection == SwipeToDismissBoxValue.StartToEnd)
+                            Alignment.CenterStart else Alignment.CenterEnd
                     ) {
-                        if (dismissState.targetValue != SwipeToDismissBoxValue.Settled) {
-                            Icon(
-                                imageVector = if (isEditAction) Icons.Default.Edit else Icons.Default.Delete,
-                                contentDescription = stringResource(if (isEditAction) R.string.action_edit else R.string.action_delete),
+                        when (swipeDirection) {
+                            SwipeToDismissBoxValue.StartToEnd -> Icon(
+                                imageVector = Icons.Default.Edit,
+                                contentDescription = stringResource(R.string.action_edit),
                                 tint = Color.White
                             )
+                            SwipeToDismissBoxValue.EndToStart -> Icon(
+                                imageVector = Icons.Default.Delete,
+                                contentDescription = stringResource(R.string.action_delete),
+                                tint = Color.White
+                            )
+                            else -> Unit
                         }
                     }
                 }
