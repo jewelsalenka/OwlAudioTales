@@ -57,19 +57,26 @@ fun LibraryContent(
                 enableDismissFromStartToEnd = true,
                 enableDismissFromEndToStart = true,
                 backgroundContent = {
+                    val color = when (dismissState.targetValue) {
+                        SwipeToDismissBoxValue.StartToEnd -> Color(0xFF1976D2)
+                        SwipeToDismissBoxValue.EndToStart -> Color(0xFFD32F2F)
+                        SwipeToDismissBoxValue.Settled -> Color.Transparent
+                    }
                     val isEditAction = dismissState.targetValue == SwipeToDismissBoxValue.StartToEnd
                     Box(
                         modifier = Modifier
                             .fillMaxSize()
-                            .background(if (isEditAction) Color(0xFF1976D2) else Color(0xFFD32F2F))
+                            .background(color)
                             .padding(horizontal = 20.dp),
                         contentAlignment = if (isEditAction) Alignment.CenterStart else Alignment.CenterEnd
                     ) {
-                        Icon(
-                            imageVector = if (isEditAction) Icons.Default.Edit else Icons.Default.Delete,
-                            contentDescription = stringResource(if (isEditAction) R.string.action_edit else R.string.action_delete),
-                            tint = Color.White
-                        )
+                        if (dismissState.targetValue != SwipeToDismissBoxValue.Settled) {
+                            Icon(
+                                imageVector = if (isEditAction) Icons.Default.Edit else Icons.Default.Delete,
+                                contentDescription = stringResource(if (isEditAction) R.string.action_edit else R.string.action_delete),
+                                tint = Color.White
+                            )
+                        }
                     }
                 }
             ) {
