@@ -12,7 +12,7 @@ android {
 
     defaultConfig {
         applicationId = "com.example.owlaudiotales"
-        minSdk = 26
+        minSdk = 28
         targetSdk = 36
         versionCode = 1
         versionName = "1.0"
@@ -85,6 +85,11 @@ dependencies {
     // Hilt
     implementation("com.google.dagger:hilt-android:2.56")
     ksp("com.google.dagger:hilt-android-compiler:2.56")
+
+    // Media3
+    implementation("androidx.media3:media3-exoplayer:1.10.1")
+    implementation("androidx.media3:media3-session:1.10.1")
+    implementation("androidx.media3:media3-ui:1.10.1")
 
     testImplementation("junit:junit:4.13.2")
     androidTestImplementation("androidx.test.ext:junit:1.3.0")

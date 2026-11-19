@@ -13,6 +13,7 @@
     <string name="edit">Edit</string>
     <string name="action_edit">Редагувати</string>
     <string name="action_delete">Видалити</string>
+    <string name="action_stop">Зупинити</string>
 
     <!-- Welcome -->
     <string name="welcome_to_owlaudiotales">Welcome to OwlAudioTales!</string>

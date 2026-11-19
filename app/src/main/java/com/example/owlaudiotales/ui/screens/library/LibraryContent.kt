@@ -28,7 +28,7 @@ fun LibraryContent(
     activeId: Long?,
     isPlaying: Boolean,
     onClick: (Long) -> Unit,
-    onPlayPause: (String) -> Unit,
+    onPlayPause: () -> Unit,
     onNext: () -> Unit,
     onPrevious: () -> Unit,
     onDelete: (AudioItem) -> Unit,
@@ -97,7 +97,7 @@ fun LibraryContent(
                     isActive = activeId == audio.id,
                     isPlaying = isPlaying && activeId == audio.id,
                     onClick = { onClick(audio.id) },
-                    onPlayPause = { onPlayPause(audio.filePath) },
+                    onPlayPause = onPlayPause,
                     onNext = { onNext() },
                     onPrevious = { onPrevious() }
                 )

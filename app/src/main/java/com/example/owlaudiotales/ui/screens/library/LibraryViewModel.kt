@@ -1,11 +1,23 @@
 package com.example.owlaudiotales.ui.screens.library
 
-import android.media.MediaPlayer
+import android.content.ComponentName
+import android.content.Context
+import android.net.Uri
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import androidx.media3.common.C
+import androidx.media3.common.MediaItem
+import androidx.media3.common.MediaMetadata
+import androidx.media3.common.Player
+import androidx.media3.session.MediaController
+import androidx.media3.session.SessionToken
 import com.example.owlaudiotales.data.local.AudioDao
 import com.example.owlaudiotales.model.AudioItem
+import com.example.owlaudiotales.service.AudioPlaybackService
+import com.google.common.util.concurrent.ListenableFuture
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import java.io.File
@@ -13,6 +25,7 @@ import javax.inject.Inject
 
 @HiltViewModel
 class LibraryViewModel @Inject constructor(
+    @ApplicationContext private val context: Context,
     private val audioDao: AudioDao
 ) : ViewModel() {
 
@@ -29,91 +42,123 @@ class LibraryViewModel @Inject constructor(
     private val _isPlaying = MutableStateFlow(false)
     val isPlaying: StateFlow<Boolean> = _isPlaying.asStateFlow()
 
-    private var mediaPlayer: MediaPlayer? = null
-    private var currentIndex: Int = -1
+    private var controllerFuture: ListenableFuture<MediaController>? = null
+    private var mediaController: MediaController? = null
+
+    private val playerListener = object : Player.Listener {
+        override fun onIsPlayingChanged(isPlaying: Boolean) {
+            _isPlaying.value = isPlaying
+        }
+
+        override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
+            if (reason == Player.MEDIA_ITEM_TRANSITION_REASON_SEEK ||
+                reason == Player.MEDIA_ITEM_TRANSITION_REASON_AUTO
+            ) {
+                _activeAudioId.value = mediaItem?.mediaId?.toLongOrNull()
+            }
+        }
+    }
+
+    init {
+        connectToService()
+    }
+
+    private fun connectToService() {
+        val sessionToken = SessionToken(
+            context,
+            ComponentName(context, AudioPlaybackService::class.java)
+        )
+        controllerFuture = MediaController.Builder(context, sessionToken).buildAsync()
+        controllerFuture?.addListener({
+            mediaController = controllerFuture?.get()
+            mediaController?.addListener(playerListener)
+            observeAudioList()
+        }, ContextCompat.getMainExecutor(context))
+    }
+
+    private fun observeAudioList() {
+        viewModelScope.launch {
+            audioList.collect { items -> updatePlaylist(items) }
+        }
+    }
+
+    private fun updatePlaylist(items: List<AudioItem>) {
+        val controller = mediaController ?: return
+        if (items.isEmpty()) {
+            controller.clearMediaItems()
+            return
+        }
+
+        val mediaItems = items.map { it.toMediaItem() }
+        val currentItemId = controller.currentMediaItem?.mediaId
+        val currentIndex = items.indexOfFirst { it.id.toString() == currentItemId }
+        val startIndex = if (currentIndex >= 0) currentIndex else 0
+        val startPosition = if (currentIndex >= 0 && controller.playbackState != Player.STATE_IDLE) {
+            controller.currentPosition
+        } else {
+            C.TIME_UNSET
+        }
+        val wasPlaying = controller.isPlaying && currentIndex >= 0
+
+        controller.setMediaItems(mediaItems, startIndex, startPosition)
+        controller.prepare()
+        if (wasPlaying) controller.play()
+    }
+
+    private fun AudioItem.toMediaItem(): MediaItem =
+        MediaItem.Builder()
+            .setMediaId(id.toString())
+            .setUri(Uri.fromFile(File(filePath)))
+            .setMediaMetadata(
+                MediaMetadata.Builder()
+                    .setTitle(title)
+                    .setArtist(author)
+                    .setArtworkUri(coverImagePath?.let { Uri.fromFile(File(it)) })
+                    .build()
+            )
+            .build()
 
     fun onAudioClicked(audioId: Long) {
-        if (_activeAudioId.value == audioId) {
-            _activeAudioId.value = null
-        } else {
-            releasePlayer()
-            _activeAudioId.value = audioId
-        }
-        updateCurrentIndex()
+        _activeAudioId.value = if (_activeAudioId.value == audioId) null else audioId
     }
 
-    fun onPlayPauseClicked(audioPath: String) {
-        if (mediaPlayer == null) {
-            mediaPlayer = MediaPlayer().apply {
-                setDataSource(audioPath)
-                setOnPreparedListener {
-                    it.start()
-                    _isPlaying.value = true
-                }
-                setOnCompletionListener {
-                    _isPlaying.value = false
-                }
-                prepareAsync()
-            }
-        } else {
-            if (_isPlaying.value) {
-                mediaPlayer?.pause()
-                _isPlaying.value = false
-            } else {
-                mediaPlayer?.start()
-                _isPlaying.value = true
-            }
-        }
-    }
+    fun onPlayPauseClicked() {
+        val controller = mediaController ?: return
+        val activeId = _activeAudioId.value ?: return
+        val targetIndex = audioList.value.indexOfFirst { it.id == activeId }
+        if (targetIndex < 0) return
 
-    private fun releasePlayer() {
-        mediaPlayer?.release()
-        mediaPlayer = null
-        _isPlaying.value = false
+        if (controller.currentMediaItemIndex == targetIndex &&
+            controller.playbackState != Player.STATE_IDLE &&
+            controller.playbackState != Player.STATE_ENDED
+        ) {
+            if (controller.isPlaying) controller.pause() else controller.play()
+        } else {
+            controller.seekTo(targetIndex, C.TIME_UNSET)
+            controller.play()
+        }
     }
 
     fun deleteAudio(audio: AudioItem) {
         viewModelScope.launch {
             audioDao.deleteAudio(audio)
-
-            val file = File(audio.filePath)
-            if (file.exists()) file.delete()
-
+            File(audio.filePath).takeIf { it.exists() }?.delete()
             if (_activeAudioId.value == audio.id) {
-                releasePlayer()
+                mediaController?.stop()
                 _activeAudioId.value = null
-                currentIndex = -1
-            } else {
-                updateCurrentIndex()
             }
         }
     }
 
     fun playNext() {
-        releasePlayer()
-        val list = audioList.value
-        if (currentIndex in list.indices) {
-            val nextIndex = (currentIndex + 1) % list.size
-            _activeAudioId.value = list[nextIndex].id
-            currentIndex = nextIndex
-        }
+        mediaController?.seekToNextMediaItem()
+        mediaController?.play()
     }
 
     fun playPrevious() {
-        releasePlayer()
-        val list = audioList.value
-        if (currentIndex in list.indices) {
-            val prevIndex = if (currentIndex - 1 < 0) list.lastIndex else currentIndex - 1
-            _activeAudioId.value = list[prevIndex].id
-            currentIndex = prevIndex
-        }
+        mediaController?.seekToPreviousMediaItem()
+        mediaController?.play()
     }
-
-    private fun updateCurrentIndex() {
-        val list = audioList.value
-        currentIndex = list.indexOfFirst { it.id == _activeAudioId.value }
-    }
-
 
     fun updateAudioMetadata(audio: AudioItem, newTitle: String, newAuthor: String) {
         viewModelScope.launch {
@@ -124,6 +169,9 @@ class LibraryViewModel @Inject constructor(
 
     override fun onCleared() {
         super.onCleared()
-        releasePlayer()
+        mediaController?.removeListener(playerListener)
+        controllerFuture?.let { MediaController.releaseFuture(it) }
+        controllerFuture = null
+        mediaController = null
     }
 }
