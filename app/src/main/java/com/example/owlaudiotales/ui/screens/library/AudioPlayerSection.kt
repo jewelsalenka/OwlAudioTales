@@ -15,12 +15,21 @@ import com.example.owlaudiotales.R
 @Preview(showBackground = true)
 @Composable
 private fun AudioPlayerSectionPreview() {
-    AudioPlayerSection(isPlaying = false, onPlayPause = {}, onNext = {}, onPrevious = {})
+    AudioPlayerSection(
+        isPlaying = false,
+        canPlayNext = true,
+        canPlayPrevious = false,
+        onPlayPause = {},
+        onNext = {},
+        onPrevious = {}
+    )
 }
 
 @Composable
 fun AudioPlayerSection(
     isPlaying: Boolean,
+    canPlayNext: Boolean,
+    canPlayPrevious: Boolean,
     onPlayPause: () -> Unit,
     onNext: () -> Unit,
     onPrevious: () -> Unit
@@ -30,7 +39,7 @@ fun AudioPlayerSection(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceEvenly
         ) {
-            Button(onClick = onPrevious) {
+            Button(onClick = onPrevious, enabled = canPlayPrevious) {
                 Text(stringResource(R.string.player_previous))
             }
 
@@ -38,7 +47,7 @@ fun AudioPlayerSection(
                 Text(stringResource(if (isPlaying) R.string.player_pause else R.string.player_play))
             }
 
-            Button(onClick = onNext) {
+            Button(onClick = onNext, enabled = canPlayNext) {
                 Text(stringResource(R.string.player_next))
             }
         }

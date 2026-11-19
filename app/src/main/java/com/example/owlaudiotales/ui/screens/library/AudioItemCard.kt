@@ -32,6 +32,8 @@ fun AudioItemCard(
     audio: AudioItem,
     isActive: Boolean,
     isPlaying: Boolean,
+    canPlayNext: Boolean,
+    canPlayPrevious: Boolean,
     onClick: () -> Unit,
     onPlayPause: () -> Unit,
     onNext: () -> Unit,
@@ -78,6 +80,8 @@ fun AudioItemCard(
                 Column(modifier = Modifier.padding(top = 12.dp)) {
                     AudioPlayerSection(
                         isPlaying = isPlaying,
+                        canPlayNext = canPlayNext,
+                        canPlayPrevious = canPlayPrevious,
                         onPlayPause = onPlayPause,
                         onNext = onNext,
                         onPrevious = onPrevious
@@ -101,6 +105,8 @@ private fun AudioItemCardPreview() {
         ),
         isActive = true,
         isPlaying = false,
+        canPlayNext = true,
+        canPlayPrevious = false,
         onClick = {},
         onPlayPause = {},
         onNext = {},

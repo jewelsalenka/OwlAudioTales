@@ -3,7 +3,7 @@ package com.example.owlaudiotales.ui.screens.library
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
@@ -35,7 +35,7 @@ fun LibraryContent(
     onEditClick: (AudioItem) -> Unit
 ) {
     LazyColumn(modifier = Modifier.fillMaxSize()) {
-        items(audioList, key = { it.id }) { audio ->
+        itemsIndexed(audioList, key = { _, audio -> audio.id }) { index, audio ->
             val dismissState = rememberSwipeToDismissBoxState(
                 confirmValueChange = { value ->
                     when (value) {
@@ -96,10 +96,12 @@ fun LibraryContent(
                     audio = audio,
                     isActive = activeId == audio.id,
                     isPlaying = isPlaying && activeId == audio.id,
+                    canPlayNext = index < audioList.lastIndex,
+                    canPlayPrevious = index > 0,
                     onClick = { onClick(audio.id) },
                     onPlayPause = onPlayPause,
-                    onNext = { onNext() },
-                    onPrevious = { onPrevious() }
+                    onNext = onNext,
+                    onPrevious = onPrevious
                 )
             }
         }

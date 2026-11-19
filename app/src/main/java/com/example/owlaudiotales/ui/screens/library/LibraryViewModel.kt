@@ -119,7 +119,25 @@ class LibraryViewModel @Inject constructor(
             .build()
 
     fun onAudioClicked(audioId: Long) {
-        _activeAudioId.value = if (_activeAudioId.value == audioId) null else audioId
+        if (_activeAudioId.value == audioId) {
+            _activeAudioId.value = null
+            return
+        }
+
+        _activeAudioId.value = audioId
+        val controller = mediaController ?: return
+        if (!controller.playWhenReady ||
+            controller.playbackState == Player.STATE_IDLE ||
+            controller.playbackState == Player.STATE_ENDED ||
+            controller.currentMediaItem?.mediaId == audioId.toString()
+        ) return
+
+        val targetIndex = audioList.value.indexOfFirst { it.id == audioId }
+        if (targetIndex in 0 until controller.mediaItemCount &&
+            controller.getMediaItemAt(targetIndex).mediaId == audioId.toString()
+        ) {
+            controller.seekTo(targetIndex, C.TIME_UNSET)
+        }
     }
 
     fun onPlayPauseClicked() {
@@ -150,14 +168,26 @@ class LibraryViewModel @Inject constructor(
         }
     }
 
-    fun playNext() {
-        mediaController?.seekToNextMediaItem()
-        mediaController?.play()
-    }
+    fun playNext() = playAdjacent(1)
 
-    fun playPrevious() {
-        mediaController?.seekToPreviousMediaItem()
-        mediaController?.play()
+    fun playPrevious() = playAdjacent(-1)
+
+    private fun playAdjacent(offset: Int) {
+        val controller = mediaController ?: return
+        val activeId = _activeAudioId.value ?: return
+        val items = audioList.value
+        val activeIndex = items.indexOfFirst { it.id == activeId }
+        if (activeIndex < 0) return
+
+        val targetIndex = activeIndex + offset
+        val target = items.getOrNull(targetIndex) ?: return
+        if (targetIndex >= controller.mediaItemCount ||
+            controller.getMediaItemAt(targetIndex).mediaId != target.id.toString()
+        ) return
+
+        controller.seekTo(targetIndex, C.TIME_UNSET)
+        _activeAudioId.value = target.id
+        controller.play()
     }
 
     fun updateAudioMetadata(audio: AudioItem, newTitle: String, newAuthor: String) {
