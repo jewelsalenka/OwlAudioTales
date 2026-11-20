@@ -51,7 +51,10 @@
     <string name="setting_child_mode">Child Mode</string>
     <string name="setting_autoplay_next">Autoplay next</string>
     <string name="setting_background_music">Background music</string>
-    <string name="sleep_timer_format">Sleep Timer: %d minutes</string>
+    <string name="setting_sleep_timer">Sleep Timer</string>
+    <string name="timer_hours">Hours</string>
+    <string name="timer_minutes">Minutes</string>
+    <string name="timer_seconds">Seconds</string>
 
     <!-- Errors -->
     <string name="error_recording_start">Помилка запису: %s</string>

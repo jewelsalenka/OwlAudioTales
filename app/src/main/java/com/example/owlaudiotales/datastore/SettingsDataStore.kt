@@ -17,6 +17,8 @@ object SettingsKeys {
     val AUTOPLAY = booleanPreferencesKey("autoplay_next")
     val MUSIC = booleanPreferencesKey("background_music")
     val TIMER = intPreferencesKey("sleep_timer")
+    val TIMER_SECONDS = intPreferencesKey("sleep_timer_seconds")
+    val TIMER_ENABLED = booleanPreferencesKey("sleep_timer_enabled")
     val FIRST_LAUNCH = booleanPreferencesKey("first_launch")
 }
 class SettingsDataStore (private val context: Context){
@@ -26,7 +28,9 @@ class SettingsDataStore (private val context: Context){
                 childMode = prefs[SettingsKeys.CHILD_MODE] ?: false,
                 autoplayNext = prefs[SettingsKeys.AUTOPLAY] ?: false,
                 backgroundMusic = prefs[SettingsKeys.MUSIC] ?: false,
-                sleepTimerMinutes = prefs[SettingsKeys.TIMER] ?: 10
+                sleepTimerSeconds = prefs[SettingsKeys.TIMER_SECONDS]
+                    ?: (prefs[SettingsKeys.TIMER]?.times(60) ?: 0),
+                sleepTimerEnabled = prefs[SettingsKeys.TIMER_ENABLED] ?: false
 
             )
         }
@@ -46,8 +50,12 @@ class SettingsDataStore (private val context: Context){
         context.settingsDataStore.edit { it[SettingsKeys.MUSIC] = enable }
     }
 
-    suspend fun saveTimer(minutes: Int) {
-        context.settingsDataStore.edit { it[SettingsKeys.TIMER] = minutes }
+    suspend fun saveTimer(seconds: Int) {
+        context.settingsDataStore.edit { it[SettingsKeys.TIMER_SECONDS] = seconds }
+    }
+
+    suspend fun saveTimerEnabled(enabled: Boolean) {
+        context.settingsDataStore.edit { it[SettingsKeys.TIMER_ENABLED] = enabled }
     }
 
     suspend fun setFirstLaunchDone() {

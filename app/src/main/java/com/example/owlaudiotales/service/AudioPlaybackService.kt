@@ -4,6 +4,7 @@ import android.content.Intent
 import android.os.Bundle
 import androidx.annotation.OptIn
 import androidx.media3.common.C
+import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.session.CommandButton
@@ -12,9 +13,20 @@ import androidx.media3.session.MediaSessionService
 import androidx.media3.session.SessionCommand
 import androidx.media3.session.SessionResult
 import com.example.owlaudiotales.R
+import com.example.owlaudiotales.datastore.SettingsDataStore
 import com.google.common.util.concurrent.Futures
 import com.google.common.util.concurrent.ListenableFuture
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.launch
+import javax.inject.Inject
+import kotlin.time.Duration.Companion.seconds
 
 @AndroidEntryPoint
 @OptIn(UnstableApi::class)
@@ -25,7 +37,12 @@ class AudioPlaybackService : MediaSessionService() {
         val STOP_COMMAND = SessionCommand(ACTION_STOP, Bundle())
     }
 
+    @Inject lateinit var settingsDataStore: SettingsDataStore
+
+    private val serviceScope = CoroutineScope(Dispatchers.Main.immediate)
     private var mediaSession: MediaSession? = null
+    private var sleepTimerSeconds = 0
+    private var sleepTimerJob: Job? = null
 
     override fun onCreate() {
         super.onCreate()
@@ -33,7 +50,38 @@ class AudioPlaybackService : MediaSessionService() {
         val player = ExoPlayer.Builder(this)
             .setWakeMode(C.WAKE_MODE_LOCAL)
             .setHandleAudioBecomingNoisy(true)
+            .setPauseAtEndOfMediaItems(true)
             .build()
+
+        player.addListener(object : Player.Listener {
+            override fun onEvents(player: Player, events: Player.Events) {
+                if (events.containsAny(
+                        Player.EVENT_PLAY_WHEN_READY_CHANGED,
+                        Player.EVENT_PLAYBACK_STATE_CHANGED
+                    )
+                ) {
+                    updateSleepTimer(player)
+                }
+            }
+        })
+
+        serviceScope.launch {
+            settingsDataStore.settingsFlow
+                .map { settings ->
+                    val timerSeconds = if (settings.sleepTimerEnabled) settings.sleepTimerSeconds else 0
+                    settings.autoplayNext to timerSeconds
+                }
+                .distinctUntilChanged()
+                .collect { (autoplayNext, timerSeconds) ->
+                    player.setPauseAtEndOfMediaItems(!autoplayNext)
+                    if (sleepTimerSeconds != timerSeconds) {
+                        sleepTimerSeconds = timerSeconds
+                        sleepTimerJob?.cancel()
+                        sleepTimerJob = null
+                        updateSleepTimer(player)
+                    }
+                }
+        }
 
         mediaSession = MediaSession.Builder(this, player)
             .setCallback(object : MediaSession.Callback {
@@ -78,6 +126,22 @@ class AudioPlaybackService : MediaSessionService() {
         )
     }
 
+    private fun updateSleepTimer(player: Player) {
+        val isPlaybackRequested = player.playWhenReady &&
+            (player.playbackState == Player.STATE_READY || player.playbackState == Player.STATE_BUFFERING)
+
+        if (sleepTimerSeconds <= 0 || !isPlaybackRequested) {
+            sleepTimerJob?.cancel()
+            sleepTimerJob = null
+        } else if (sleepTimerJob == null) {
+            sleepTimerJob = serviceScope.launch {
+                delay(sleepTimerSeconds.seconds)
+                sleepTimerJob = null
+                player.pause()
+            }
+        }
+    }
+
     override fun onGetSession(controllerInfo: MediaSession.ControllerInfo): MediaSession? = mediaSession
 
     override fun onTaskRemoved(rootIntent: Intent?) {
@@ -86,6 +150,7 @@ class AudioPlaybackService : MediaSessionService() {
     }
 
     override fun onDestroy() {
+        serviceScope.cancel()
         mediaSession?.run {
             player.release()
             release()

@@ -4,5 +4,6 @@ data class SettingsState(
     val childMode: Boolean = false,
     val autoplayNext: Boolean = false,
     val backgroundMusic: Boolean = true,
-    val sleepTimerMinutes: Int = 10
+    val sleepTimerSeconds: Int = 0,
+    val sleepTimerEnabled: Boolean = false
 )

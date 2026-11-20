@@ -33,9 +33,13 @@ class SettingsViewModel @Inject constructor(
         viewModelScope.launch { settingsDataStore.saveMusicState(isChecked)}
     }
 
-    fun updateSleepTimer(minutes: Int) {
+    fun setSleepTimerEnabled(enabled: Boolean) {
+        viewModelScope.launch { settingsDataStore.saveTimerEnabled(enabled) }
+    }
+
+    fun updateSleepTimer(seconds: Int) {
         viewModelScope.launch {
-            settingsDataStore.saveTimer(minutes)
+            settingsDataStore.saveTimer(seconds)
         }
     }
 
