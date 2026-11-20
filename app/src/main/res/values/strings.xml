@@ -52,7 +52,9 @@
     <string name="setting_autoplay_next">Autoplay next</string>
     <string name="setting_background_music">Background music</string>
     <string name="background_track_default">Ambient</string>
-    <string name="background_track_format">Track: %s</string>
+    <string name="background_track_01">Piano</string>
+    <string name="background_track_02">Sunset</string>
+    <string name="background_track_03">Sadness</string>
     <string name="background_volume_format">Background volume: %d%%</string>
     <string name="setting_sleep_timer">Sleep Timer</string>
     <string name="timer_hours">Hours</string>

@@ -47,6 +47,8 @@ class AudioPlaybackService : MediaSessionService() {
     private var backgroundPlayer: ExoPlayer? = null
     private var backgroundTrack: BackgroundTrack? = null
     private var backgroundVolume = 0
+    private var previewTrack: BackgroundTrack? = null
+    private var previewJob: Job? = null
     private var sleepTimerSeconds = 0
     private var sleepTimerJob: Job? = null
 
@@ -103,6 +105,10 @@ class AudioPlaybackService : MediaSessionService() {
                 .collect { (track, volume) ->
                     backgroundTrack = track
                     backgroundVolume = volume
+                    if (track == null) {
+                        previewJob?.cancel()
+                        previewTrack = null
+                    }
                     updateBackgroundMusic(player.isPlaying)
                 }
         }
@@ -117,9 +123,11 @@ class AudioPlaybackService : MediaSessionService() {
                     val commands = MediaSession.ConnectionResult
                         .DEFAULT_SESSION_COMMANDS.buildUpon()
                         .add(STOP_COMMAND)
-                        .build()
+                    if (controller.uid == applicationInfo.uid) {
+                        commands.add(BackgroundPreviewCommand.command)
+                    }
                     return MediaSession.ConnectionResult.accept(
-                        commands,
+                        commands.build(),
                         MediaSession.ConnectionResult.DEFAULT_PLAYER_COMMANDS
                     )
                 }
@@ -131,8 +139,18 @@ class AudioPlaybackService : MediaSessionService() {
                     args: Bundle
                 ): ListenableFuture<SessionResult> {
                     if (customCommand.customAction == ACTION_STOP) {
+                        previewBackground(null, session.player)
                         session.player.stop()
                         stopSelf()
+                        return Futures.immediateFuture(SessionResult(SessionResult.RESULT_SUCCESS))
+                    }
+                    if (customCommand == BackgroundPreviewCommand.command &&
+                        controller.uid == applicationInfo.uid
+                    ) {
+                        val track = BackgroundTrack.entries.firstOrNull {
+                            it.id == args.getString(BackgroundPreviewCommand.TRACK_ID)
+                        }
+                        previewBackground(track, session.player)
                         return Futures.immediateFuture(SessionResult(SessionResult.RESULT_SUCCESS))
                     }
                     return super.onCustomCommand(session, controller, customCommand, args)
@@ -150,9 +168,23 @@ class AudioPlaybackService : MediaSessionService() {
         )
     }
 
+    private fun previewBackground(track: BackgroundTrack?, storyPlayer: Player) {
+        previewJob?.cancel()
+        previewTrack = track
+        if (track != null) {
+            backgroundPlayer?.seekTo(0)
+            previewJob = serviceScope.launch {
+                delay(10.seconds)
+                previewTrack = null
+                updateBackgroundMusic(storyPlayer.isPlaying)
+            }
+        }
+        updateBackgroundMusic(storyPlayer.isPlaying)
+    }
+
     private fun updateBackgroundMusic(isStoryPlaying: Boolean) {
-        val track = backgroundTrack
-        if (track == null || !isStoryPlaying) {
+        val track = previewTrack ?: backgroundTrack?.takeIf { isStoryPlaying }
+        if (track == null) {
             backgroundPlayer?.pause()
             return
         }
@@ -181,6 +213,7 @@ class AudioPlaybackService : MediaSessionService() {
             sleepTimerJob = serviceScope.launch {
                 delay(sleepTimerSeconds.seconds)
                 sleepTimerJob = null
+                previewBackground(null, player)
                 player.pause()
             }
         }
@@ -195,6 +228,7 @@ class AudioPlaybackService : MediaSessionService() {
 
     override fun onDestroy() {
         serviceScope.cancel()
+        previewTrack = null
         backgroundTrack = null
         backgroundPlayer?.release()
         backgroundPlayer = null
