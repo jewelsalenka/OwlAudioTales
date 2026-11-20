@@ -10,9 +10,15 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Slider
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -28,13 +34,15 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.owlaudiotales.R
+import com.example.owlaudiotales.model.BackgroundTrack
+import kotlin.math.roundToInt
 
 @Composable
 fun SettingsScreen() {
     val viewModel: SettingsViewModel = hiltViewModel()
     val state by viewModel.state.collectAsStateWithLifecycle()
 
-    Column(Modifier.padding(16.dp)) {
+    Column(Modifier.verticalScroll(rememberScrollState()).padding(16.dp)) {
 
         Text(stringResource(R.string.settings_title), style = MaterialTheme.typography.titleLarge)
 
@@ -49,8 +57,17 @@ fun SettingsScreen() {
         SettingSwitch(
             title = stringResource(R.string.setting_background_music),
             checked = state.backgroundMusic,
-            onCheckedChange = { viewModel.turnOnBackgroundMusic(it) }
+            onCheckedChange = viewModel::turnOnBackgroundMusic
         )
+
+        if (state.backgroundMusic) {
+            BackgroundMusicControls(
+                track = state.backgroundTrack,
+                volume = state.backgroundVolume,
+                onTrackSelected = viewModel::selectBackgroundTrack,
+                onVolumeChanged = viewModel::setBackgroundVolume
+            )
+        }
 
         Spacer(Modifier.height(16.dp))
 
@@ -67,6 +84,48 @@ fun SettingsScreen() {
             )
         }
     }
+}
+
+@Composable
+private fun BackgroundMusicControls(
+    track: BackgroundTrack,
+    volume: Int,
+    onTrackSelected: (BackgroundTrack) -> Unit,
+    onVolumeChanged: (Int) -> Unit
+) {
+    var expanded by remember { mutableStateOf(false) }
+    var sliderVolume by remember(volume) { mutableStateOf(volume.toFloat()) }
+    val trackLabel = stringResource(R.string.background_track_format, stringResource(track.title))
+
+    if (BackgroundTrack.entries.size > 1) {
+        Column {
+            TextButton(onClick = { expanded = true }) { Text(trackLabel) }
+            DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+                BackgroundTrack.entries.forEach { option ->
+                    DropdownMenuItem(
+                        text = { Text(stringResource(option.title)) },
+                        onClick = {
+                            onTrackSelected(option)
+                            expanded = false
+                        }
+                    )
+                }
+            }
+        }
+    } else {
+        Text(trackLabel, style = MaterialTheme.typography.bodyMedium)
+    }
+
+    Text(
+        stringResource(R.string.background_volume_format, sliderVolume.roundToInt()),
+        style = MaterialTheme.typography.bodyMedium
+    )
+    Slider(
+        value = sliderVolume,
+        onValueChange = { sliderVolume = it },
+        onValueChangeFinished = { onVolumeChanged(sliderVolume.roundToInt()) },
+        valueRange = 0f..100f
+    )
 }
 
 @Composable

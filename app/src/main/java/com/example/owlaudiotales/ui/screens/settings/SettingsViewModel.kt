@@ -3,6 +3,7 @@ package com.example.owlaudiotales.ui.screens.settings
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.owlaudiotales.datastore.SettingsDataStore
+import com.example.owlaudiotales.model.BackgroundTrack
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -31,6 +32,14 @@ class SettingsViewModel @Inject constructor(
 
     fun turnOnBackgroundMusic(isChecked: Boolean) {
         viewModelScope.launch { settingsDataStore.saveMusicState(isChecked)}
+    }
+
+    fun selectBackgroundTrack(track: BackgroundTrack) {
+        viewModelScope.launch { settingsDataStore.saveMusicTrack(track) }
+    }
+
+    fun setBackgroundVolume(percent: Int) {
+        viewModelScope.launch { settingsDataStore.saveMusicVolume(percent) }
     }
 
     fun setSleepTimerEnabled(enabled: Boolean) {
