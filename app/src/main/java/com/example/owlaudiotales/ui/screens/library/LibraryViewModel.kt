@@ -42,10 +42,17 @@ class LibraryViewModel @Inject constructor(
     private val _isPlaying = MutableStateFlow(false)
     val isPlaying: StateFlow<Boolean> = _isPlaying.asStateFlow()
 
+    private val _isRepeating = MutableStateFlow(false)
+    val isRepeating: StateFlow<Boolean> = _isRepeating.asStateFlow()
+
     private var controllerFuture: ListenableFuture<MediaController>? = null
     private var mediaController: MediaController? = null
 
     private val playerListener = object : Player.Listener {
+        override fun onRepeatModeChanged(repeatMode: Int) {
+            _isRepeating.value = repeatMode == Player.REPEAT_MODE_ONE
+        }
+
         override fun onIsPlayingChanged(isPlaying: Boolean) {
             _isPlaying.value = isPlaying
         }
@@ -71,7 +78,10 @@ class LibraryViewModel @Inject constructor(
         controllerFuture = MediaController.Builder(context, sessionToken).buildAsync()
         controllerFuture?.addListener({
             mediaController = controllerFuture?.get()
-            mediaController?.addListener(playerListener)
+            mediaController?.let { controller ->
+                controller.addListener(playerListener)
+                _isRepeating.value = controller.repeatMode == Player.REPEAT_MODE_ONE
+            }
             observeAudioList()
         }, ContextCompat.getMainExecutor(context))
     }
@@ -166,6 +176,10 @@ class LibraryViewModel @Inject constructor(
                 _activeAudioId.value = null
             }
         }
+    }
+
+    fun setRepeatEnabled(enabled: Boolean) {
+        mediaController?.repeatMode = if (enabled) Player.REPEAT_MODE_ONE else Player.REPEAT_MODE_OFF
     }
 
     fun playNext() = playAdjacent(1)

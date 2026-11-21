@@ -27,8 +27,10 @@ fun LibraryContent(
     audioList: List<AudioItem>,
     activeId: Long?,
     isPlaying: Boolean,
+    isRepeating: Boolean,
     onClick: (Long) -> Unit,
     onPlayPause: () -> Unit,
+    onRepeatChange: (Boolean) -> Unit,
     onNext: () -> Unit,
     onPrevious: () -> Unit,
     onDelete: (AudioItem) -> Unit,
@@ -96,10 +98,12 @@ fun LibraryContent(
                     audio = audio,
                     isActive = activeId == audio.id,
                     isPlaying = isPlaying && activeId == audio.id,
+                    isRepeating = isRepeating,
                     canPlayNext = index < audioList.lastIndex,
                     canPlayPrevious = index > 0,
                     onClick = { onClick(audio.id) },
                     onPlayPause = onPlayPause,
+                    onRepeatChange = onRepeatChange,
                     onNext = onNext,
                     onPrevious = onPrevious
                 )

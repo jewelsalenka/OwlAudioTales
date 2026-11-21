@@ -45,6 +45,7 @@
     <string name="player_play">▶</string>
     <string name="player_pause">⏸</string>
     <string name="player_next">⏭</string>
+    <string name="player_loop">Loop</string>
 
     <!-- Settings -->
     <string name="settings_title">Settings</string>

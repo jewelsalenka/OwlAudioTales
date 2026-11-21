@@ -61,7 +61,12 @@ class AudioPlaybackService : MediaSessionService() {
             .setPauseAtEndOfMediaItems(true)
             .build()
 
+        var autoplayNext = false
         player.addListener(object : Player.Listener {
+            override fun onRepeatModeChanged(repeatMode: Int) {
+                player.setPauseAtEndOfMediaItems(!autoplayNext && repeatMode != Player.REPEAT_MODE_ONE)
+            }
+
             override fun onIsPlayingChanged(isPlaying: Boolean) {
                 updateBackgroundMusic(isPlaying)
             }
@@ -84,8 +89,11 @@ class AudioPlaybackService : MediaSessionService() {
                     settings.autoplayNext to timerSeconds
                 }
                 .distinctUntilChanged()
-                .collect { (autoplayNext, timerSeconds) ->
-                    player.setPauseAtEndOfMediaItems(!autoplayNext)
+                .collect { (autoplayEnabled, timerSeconds) ->
+                    autoplayNext = autoplayEnabled
+                    player.setPauseAtEndOfMediaItems(
+                        !autoplayNext && player.repeatMode != Player.REPEAT_MODE_ONE
+                    )
                     if (sleepTimerSeconds != timerSeconds) {
                         sleepTimerSeconds = timerSeconds
                         sleepTimerJob?.cancel()
