@@ -28,8 +28,13 @@ fun AppNavGraph(
                 }
             })
         }
-        composable("library") { LibraryScreen() }
-        composable("record") { RecordScreen() }
-        composable("settings") { SettingsScreen() }
+        composable("library") {
+            LibraryScreen(
+                onOpenSettings = { navController.navigate("settings") { launchSingleTop = true } },
+                onCreateRecording = { navController.navigate("record") { launchSingleTop = true } }
+            )
+        }
+        composable("record") { RecordScreen(onBack = { navController.popBackStack() }) }
+        composable("settings") { SettingsScreen(onBack = { navController.popBackStack() }) }
     }
 }

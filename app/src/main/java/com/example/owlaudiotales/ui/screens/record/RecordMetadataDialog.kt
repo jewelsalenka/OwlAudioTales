@@ -20,6 +20,7 @@ import java.io.FileOutputStream
 
 @Composable
 fun RecordMetadataDialog(
+    isSaving: Boolean,
     onDismiss: () -> Unit,
     onSave: (title: String, author: String, coverPath: String?) -> Unit
 ) {
@@ -47,7 +48,7 @@ fun RecordMetadataDialog(
     )
 
     AlertDialog(
-        onDismissRequest = onDismiss,
+        onDismissRequest = { if (!isSaving) onDismiss() },
         title = { Text(stringResource(R.string.save_fairy_tale)) },
         text = {
             Column(modifier = Modifier.fillMaxWidth()) {
@@ -89,13 +90,13 @@ fun RecordMetadataDialog(
                 onClick = {
                     onSave(title.trim(), author.trim(), selectedImagePath)
                 },
-                enabled = title.isNotBlank() && author.isNotBlank()
+                enabled = !isSaving && title.isNotBlank() && author.isNotBlank()
             ) {
                 Text(stringResource(R.string.save))
             }
         },
         dismissButton = {
-            Button(onClick = onDismiss) {
+            Button(onClick = onDismiss, enabled = !isSaving) {
                 Text(stringResource(R.string.cancel))
             }
         }

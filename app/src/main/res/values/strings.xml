@@ -14,18 +14,22 @@
     <string name="action_edit">Редагувати</string>
     <string name="action_delete">Видалити</string>
     <string name="action_stop">Зупинити</string>
+    <string name="navigate_back">Назад</string>
 
     <!-- Welcome -->
     <string name="welcome_to_owlaudiotales">Welcome to OwlAudioTales!</string>
     <string name="get_started">Get Started</string>
 
     <!-- Record screen -->
+    <string name="create_recording">Створити запис</string>
     <string name="record_start">Записати</string>
+    <string name="record_preparing">Підготовка…</string>
     <string name="record_pause">Пауза</string>
     <string name="record_resume">Продовжити</string>
     <string name="record_stop">Зупинити</string>
-    <string name="file_saved_format">Файл збережено: %s</string>
     <string name="fairy_tale_saved_format">Казку %s збережено</string>
+    <string name="discard_active_recording">Вийти без збереження запису?</string>
+    <string name="discard_recording">Відкинути запис</string>
 
     <!-- Record metadata dialog -->
     <string name="save_fairy_tale">Зберегти казку</string>
@@ -37,6 +41,7 @@
     <string name="add_photo">Додати фото</string>
 
     <!-- Library -->
+    <string name="library_title">Бібліотека</string>
     <string name="author_format">Автор: %s</string>
     <string name="duration_format">Тривалість: %d сек</string>
 
@@ -64,6 +69,8 @@
 
     <!-- Errors -->
     <string name="error_recording_start">Помилка запису: %s</string>
+    <string name="error_recording_pause_playback">Не вдалося призупинити відтворення</string>
+    <string name="error_recording_save">Не вдалося зберегти запис</string>
     <string name="error_recording_pause">Помилка паузи: %s</string>
     <string name="error_recording_resume">Помилка відновлення: %s</string>
     <string name="error_recording_stop">Помилка зупинки: %s</string>

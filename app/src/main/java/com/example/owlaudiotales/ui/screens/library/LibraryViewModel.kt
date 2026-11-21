@@ -42,6 +42,9 @@ class LibraryViewModel @Inject constructor(
     private val _isPlaying = MutableStateFlow(false)
     val isPlaying: StateFlow<Boolean> = _isPlaying.asStateFlow()
 
+    private val _canCreateRecording = MutableStateFlow(false)
+    val canCreateRecording: StateFlow<Boolean> = _canCreateRecording.asStateFlow()
+
     private val _isRepeating = MutableStateFlow(false)
     val isRepeating: StateFlow<Boolean> = _isRepeating.asStateFlow()
 
@@ -55,6 +58,16 @@ class LibraryViewModel @Inject constructor(
 
         override fun onIsPlayingChanged(isPlaying: Boolean) {
             _isPlaying.value = isPlaying
+        }
+
+        override fun onEvents(player: Player, events: Player.Events) {
+            if (events.containsAny(
+                    Player.EVENT_PLAY_WHEN_READY_CHANGED,
+                    Player.EVENT_PLAYBACK_STATE_CHANGED
+                )
+            ) {
+                updateRecordingAvailability(player)
+            }
         }
 
         override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
@@ -80,10 +93,21 @@ class LibraryViewModel @Inject constructor(
             mediaController = controllerFuture?.get()
             mediaController?.let { controller ->
                 controller.addListener(playerListener)
+                _isPlaying.value = controller.isPlaying
+                if (controller.isPlaying) {
+                    _activeAudioId.value = controller.currentMediaItem?.mediaId?.toLongOrNull()
+                }
+                updateRecordingAvailability(controller)
                 _isRepeating.value = controller.repeatMode == Player.REPEAT_MODE_ONE
             }
             observeAudioList()
         }, ContextCompat.getMainExecutor(context))
+    }
+
+    private fun updateRecordingAvailability(player: Player) {
+        val isPlaybackRequested = player.playWhenReady &&
+            (player.playbackState == Player.STATE_READY || player.playbackState == Player.STATE_BUFFERING)
+        _canCreateRecording.value = !isPlaybackRequested
     }
 
     private fun observeAudioList() {

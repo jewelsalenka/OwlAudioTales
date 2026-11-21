@@ -19,6 +19,7 @@ import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RadioButton
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
@@ -48,53 +49,58 @@ import com.example.owlaudiotales.R
 import com.example.owlaudiotales.model.BackgroundTrack
 import com.example.owlaudiotales.service.AudioPlaybackService
 import com.example.owlaudiotales.service.BackgroundPreviewCommand
+import com.example.owlaudiotales.ui.components.SecondaryScreenTopBar
 import kotlin.math.roundToInt
 
 @Composable
-fun SettingsScreen() {
+fun SettingsScreen(onBack: () -> Unit) {
     val viewModel: SettingsViewModel = hiltViewModel()
     val state by viewModel.state.collectAsStateWithLifecycle()
 
-    Column(Modifier.verticalScroll(rememberScrollState()).padding(16.dp)) {
-
-        Text(stringResource(R.string.settings_title), style = MaterialTheme.typography.titleLarge)
-
-        Spacer(Modifier.height(16.dp))
-
-        SettingSwitch(
-            title = stringResource(R.string.setting_autoplay_next),
-            checked = state.autoplayNext,
-            onCheckedChange = { viewModel.autoPlayOn(it) }
-        )
-
-        SettingSwitch(
-            title = stringResource(R.string.setting_background_music),
-            checked = state.backgroundMusic,
-            onCheckedChange = viewModel::turnOnBackgroundMusic
-        )
-
-        if (state.backgroundMusic) {
-            BackgroundMusicControls(
-                track = state.backgroundTrack,
-                volume = state.backgroundVolume,
-                onTrackSelected = viewModel::selectBackgroundTrack,
-                onVolumeChanged = viewModel::setBackgroundVolume
+    Scaffold(
+        topBar = { SecondaryScreenTopBar(stringResource(R.string.settings_title), onBack) }
+    ) { padding ->
+        Column(
+            Modifier
+                .padding(padding)
+                .verticalScroll(rememberScrollState())
+                .padding(16.dp)
+        ) {
+            SettingSwitch(
+                title = stringResource(R.string.setting_autoplay_next),
+                checked = state.autoplayNext,
+                onCheckedChange = { viewModel.autoPlayOn(it) }
             )
-        }
 
-        Spacer(Modifier.height(16.dp))
-
-        SettingSwitch(
-            title = stringResource(R.string.setting_sleep_timer),
-            checked = state.sleepTimerEnabled,
-            onCheckedChange = viewModel::setSleepTimerEnabled
-        )
-
-        if (state.sleepTimerEnabled) {
-            SleepTimerPicker(
-                savedSeconds = state.sleepTimerSeconds,
-                onDurationChanged = viewModel::updateSleepTimer
+            SettingSwitch(
+                title = stringResource(R.string.setting_background_music),
+                checked = state.backgroundMusic,
+                onCheckedChange = viewModel::turnOnBackgroundMusic
             )
+
+            if (state.backgroundMusic) {
+                BackgroundMusicControls(
+                    track = state.backgroundTrack,
+                    volume = state.backgroundVolume,
+                    onTrackSelected = viewModel::selectBackgroundTrack,
+                    onVolumeChanged = viewModel::setBackgroundVolume
+                )
+            }
+
+            Spacer(Modifier.height(16.dp))
+
+            SettingSwitch(
+                title = stringResource(R.string.setting_sleep_timer),
+                checked = state.sleepTimerEnabled,
+                onCheckedChange = viewModel::setSleepTimerEnabled
+            )
+
+            if (state.sleepTimerEnabled) {
+                SleepTimerPicker(
+                    savedSeconds = state.sleepTimerSeconds,
+                    onDurationChanged = viewModel::updateSleepTimer
+                )
+            }
         }
     }
 }

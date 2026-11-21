@@ -13,6 +13,7 @@ import androidx.media3.session.CommandButton
 import androidx.media3.session.MediaSession
 import androidx.media3.session.MediaSessionService
 import androidx.media3.session.SessionCommand
+import androidx.media3.session.SessionCommands
 import androidx.media3.session.SessionResult
 import com.example.owlaudiotales.R
 import com.example.owlaudiotales.datastore.SettingsDataStore
@@ -38,12 +39,17 @@ class AudioPlaybackService : MediaSessionService() {
     private companion object {
         const val ACTION_STOP = "com.example.owlaudiotales.STOP"
         val STOP_COMMAND = SessionCommand(ACTION_STOP, Bundle())
+        val RECORDING_PLAYER_COMMANDS = MediaSession.ConnectionResult.DEFAULT_PLAYER_COMMANDS
+            .buildUpon()
+            .remove(Player.COMMAND_PLAY_PAUSE)
+            .build()
     }
 
     @Inject lateinit var settingsDataStore: SettingsDataStore
 
     private val serviceScope = CoroutineScope(Dispatchers.Main.immediate)
     private var mediaSession: MediaSession? = null
+    private var recordingController: MediaSession.ControllerInfo? = null
     private var backgroundPlayer: ExoPlayer? = null
     private var backgroundTrack: BackgroundTrack? = null
     private var backgroundVolume = 0
@@ -128,16 +134,17 @@ class AudioPlaybackService : MediaSessionService() {
                     session: MediaSession,
                     controller: MediaSession.ControllerInfo
                 ): MediaSession.ConnectionResult {
-                    val commands = MediaSession.ConnectionResult
-                        .DEFAULT_SESSION_COMMANDS.buildUpon()
-                        .add(STOP_COMMAND)
-                    if (controller.uid == applicationInfo.uid) {
-                        commands.add(BackgroundPreviewCommand.command)
-                    }
                     return MediaSession.ConnectionResult.accept(
-                        commands.build(),
-                        MediaSession.ConnectionResult.DEFAULT_PLAYER_COMMANDS
+                        sessionCommands(controller),
+                        availablePlayerCommands()
                     )
+                }
+
+                override fun onDisconnected(session: MediaSession, controller: MediaSession.ControllerInfo) {
+                    if (recordingController == controller) {
+                        recordingController = null
+                        refreshControllerCommands(session)
+                    }
                 }
 
                 override fun onCustomCommand(
@@ -155,10 +162,23 @@ class AudioPlaybackService : MediaSessionService() {
                     if (customCommand == BackgroundPreviewCommand.command &&
                         controller.uid == applicationInfo.uid
                     ) {
+                        if (recordingController != null) {
+                            return Futures.immediateFuture(SessionResult(SessionResult.RESULT_ERROR_INVALID_STATE))
+                        }
                         val track = BackgroundTrack.entries.firstOrNull {
                             it.id == args.getString(BackgroundPreviewCommand.TRACK_ID)
                         }
                         previewBackground(track, session.player)
+                        return Futures.immediateFuture(SessionResult(SessionResult.RESULT_SUCCESS))
+                    }
+                    if (customCommand == RecordingPlaybackCommand.begin && controller.uid == applicationInfo.uid) {
+                        if (recordingController != null && recordingController != controller) {
+                            return Futures.immediateFuture(SessionResult(SessionResult.RESULT_ERROR_INVALID_STATE))
+                        }
+                        recordingController = controller
+                        refreshControllerCommands(session)
+                        session.player.pause()
+                        previewBackground(null, session.player)
                         return Futures.immediateFuture(SessionResult(SessionResult.RESULT_SUCCESS))
                     }
                     return super.onCustomCommand(session, controller, customCommand, args)
@@ -176,6 +196,29 @@ class AudioPlaybackService : MediaSessionService() {
         )
     }
 
+    private fun sessionCommands(controller: MediaSession.ControllerInfo): SessionCommands {
+        val commands = MediaSession.ConnectionResult.DEFAULT_SESSION_COMMANDS.buildUpon().add(STOP_COMMAND)
+        if (controller.uid == applicationInfo.uid) {
+            commands.add(BackgroundPreviewCommand.command)
+            commands.add(RecordingPlaybackCommand.begin)
+        }
+        return commands.build()
+    }
+
+    private fun availablePlayerCommands(): Player.Commands =
+        if (recordingController == null) {
+            MediaSession.ConnectionResult.DEFAULT_PLAYER_COMMANDS
+        } else {
+            RECORDING_PLAYER_COMMANDS
+        }
+
+    private fun refreshControllerCommands(session: MediaSession) {
+        val playerCommands = availablePlayerCommands()
+        session.connectedControllers.forEach { controller ->
+            session.setAvailableCommands(controller, sessionCommands(controller), playerCommands)
+        }
+    }
+
     private fun previewBackground(track: BackgroundTrack?, storyPlayer: Player) {
         previewJob?.cancel()
         previewTrack = track
@@ -191,7 +234,9 @@ class AudioPlaybackService : MediaSessionService() {
     }
 
     private fun updateBackgroundMusic(isStoryPlaying: Boolean) {
-        val track = previewTrack ?: backgroundTrack?.takeIf { isStoryPlaying }
+        val track = if (recordingController == null) {
+            previewTrack ?: backgroundTrack?.takeIf { isStoryPlaying }
+        } else null
         if (track == null) {
             backgroundPlayer?.pause()
             return

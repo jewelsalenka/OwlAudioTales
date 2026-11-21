@@ -34,9 +34,11 @@ fun LibraryContent(
     onNext: () -> Unit,
     onPrevious: () -> Unit,
     onDelete: (AudioItem) -> Unit,
-    onEditClick: (AudioItem) -> Unit
+    onEditClick: (AudioItem) -> Unit,
+    modifier: Modifier = Modifier,
+    contentPadding: PaddingValues = PaddingValues()
 ) {
-    LazyColumn(modifier = Modifier.fillMaxSize()) {
+    LazyColumn(modifier = modifier.fillMaxSize(), contentPadding = contentPadding) {
         itemsIndexed(audioList, key = { _, audio -> audio.id }) { index, audio ->
             val dismissState = rememberSwipeToDismissBoxState(
                 confirmValueChange = { value ->

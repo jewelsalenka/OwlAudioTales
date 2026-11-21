@@ -1,22 +1,36 @@
 package com.example.owlaudiotales.ui.screens.record
 
+import android.content.ComponentName
 import android.content.Context
 import android.media.MediaRecorder
+import android.os.Bundle
+import android.os.SystemClock
 import android.util.Log
+import androidx.concurrent.futures.await
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import androidx.media3.session.MediaController
+import androidx.media3.session.SessionResult
+import androidx.media3.session.SessionToken
 import com.example.owlaudiotales.R
 import com.example.owlaudiotales.data.local.AudioDao
 import com.example.owlaudiotales.model.AudioItem
+import com.example.owlaudiotales.service.AudioPlaybackService
+import com.example.owlaudiotales.service.RecordingPlaybackCommand
+import com.google.common.util.concurrent.ListenableFuture
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeoutOrNull
 import java.io.File
 import javax.inject.Inject
+import kotlin.time.Duration.Companion.seconds
 
 @HiltViewModel
 class RecordViewModel @Inject constructor(
@@ -24,14 +38,14 @@ class RecordViewModel @Inject constructor(
     private val audioDao: AudioDao
 ) : ViewModel() {
 
-    // Обчислюємо шлях до папки записів тут, а не отримуємо ззовні
     private val recordingsDir = File(context.filesDir, "recordings")
 
     private val _state = MutableStateFlow(RecordState())
     val state: StateFlow<RecordState> = _state.asStateFlow()
 
     private var recorder: MediaRecorder? = null
-    private var outputFile: File? = null
+    private var startJob: Job? = null
+    private var playbackControllerFuture: ListenableFuture<MediaController>? = null
     private var startTime: Long = 0L
     private var pauseStartTime: Long = 0L
     private var accumulatedPauseMs: Long = 0L
@@ -52,32 +66,60 @@ class RecordViewModel @Inject constructor(
     }
 
     private fun startRecording() {
-        try {
-            if (!recordingsDir.exists()) recordingsDir.mkdirs()
-            outputFile = File(recordingsDir, "recording_${System.currentTimeMillis()}.m4a")
-            recorder = MediaRecorder().apply {
-                setAudioSource(MediaRecorder.AudioSource.MIC)
-                setOutputFormat(MediaRecorder.OutputFormat.MPEG_4)
-                setAudioEncoder(MediaRecorder.AudioEncoder.AAC)
-                setOutputFile(outputFile!!.absolutePath)
-                prepare()
-                start()
+        val current = state.value
+        if (current.isStarting || current.isRecording || current.filePath != null || current.savedTitle != null) return
+
+        _state.update { it.copy(isStarting = true, errorMessage = null) }
+        startJob = viewModelScope.launch {
+            var file: File? = null
+            try {
+                val token = SessionToken(context, ComponentName(context, AudioPlaybackService::class.java))
+                val future = MediaController.Builder(context, token).buildAsync()
+                playbackControllerFuture = future
+                val result = withTimeoutOrNull(10.seconds) {
+                    future.await().sendCustomCommand(RecordingPlaybackCommand.begin, Bundle()).await()
+                }
+                check(result?.resultCode == SessionResult.RESULT_SUCCESS) {
+                    context.getString(R.string.error_recording_pause_playback)
+                }
+
+                recordingsDir.mkdirs()
+                val output = File.createTempFile("recording_", ".m4a", recordingsDir)
+                file = output
+                val newRecorder = MediaRecorder()
+                recorder = newRecorder
+                newRecorder.apply {
+                    setAudioSource(MediaRecorder.AudioSource.MIC)
+                    setOutputFormat(MediaRecorder.OutputFormat.MPEG_4)
+                    setAudioEncoder(MediaRecorder.AudioEncoder.AAC)
+                    setOutputFile(output.absolutePath)
+                    prepare()
+                    start()
+                }
+                startTime = SystemClock.elapsedRealtime()
+                accumulatedPauseMs = 0L
+                _state.update { it.copy(isRecording = true, isPaused = false, filePath = output.absolutePath) }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                _state.update {
+                    it.copy(errorMessage = context.getString(R.string.error_recording_start, e.message.orEmpty()))
+                }
+                Log.e("RecordVM", "Start error", e)
+            } finally {
+                if (!state.value.isRecording) {
+                    releaseRecordingResources()
+                    file?.delete()
+                }
+                _state.update { it.copy(isStarting = false) }
             }
-            startTime = System.currentTimeMillis()
-            accumulatedPauseMs = 0L
-            _state.update {
-                it.copy(isRecording = true, isPaused = false, filePath = outputFile!!.absolutePath)
-            }
-        } catch (e: Exception) {
-            _state.update { it.copy(errorMessage = context.getString(R.string.error_recording_start, e.message ?: "")) }
-            Log.e("RecordVM", "Start error", e)
         }
     }
 
     private fun pauseRecording() {
         try {
             recorder?.pause()
-            pauseStartTime = System.currentTimeMillis()
+            pauseStartTime = SystemClock.elapsedRealtime()
             _state.update { it.copy(isPaused = true) }
         } catch (e: Exception) {
             _state.update { it.copy(errorMessage = context.getString(R.string.error_recording_pause, e.message ?: "")) }
@@ -87,7 +129,7 @@ class RecordViewModel @Inject constructor(
     private fun resumeRecording() {
         try {
             recorder?.resume()
-            accumulatedPauseMs += System.currentTimeMillis() - pauseStartTime
+            accumulatedPauseMs += SystemClock.elapsedRealtime() - pauseStartTime
             _state.update { it.copy(isPaused = false) }
         } catch (e: Exception) {
             _state.update { it.copy(errorMessage = context.getString(R.string.error_recording_resume, e.message ?: "")) }
@@ -95,25 +137,35 @@ class RecordViewModel @Inject constructor(
     }
 
     private fun stopRecording() {
+        val activeRecorder = recorder ?: return
         try {
-            recorder?.apply {
-                stop()
-                release()
-            }
-            recorder = null
-            // Рахуємо тривалість тут, поки знаємо точний час зупинки
-            recordingDurationSec = ((System.currentTimeMillis() - startTime - accumulatedPauseMs) / 1000).toInt()
+            val endTime = if (state.value.isPaused) pauseStartTime else SystemClock.elapsedRealtime()
+            activeRecorder.stop()
+            recordingDurationSec = ((endTime - startTime - accumulatedPauseMs) / 1000).toInt()
             _state.update {
                 it.copy(isRecording = false, isPaused = false, errorMessage = null)
             }
         } catch (e: Exception) {
-            _state.update { it.copy(errorMessage = context.getString(R.string.error_recording_stop, e.message ?: "")) }
+            state.value.filePath?.let { File(it).delete() }
+            _state.update {
+                it.copy(
+                    isRecording = false,
+                    isPaused = false,
+                    filePath = null,
+                    errorMessage = context.getString(R.string.error_recording_stop, e.message.orEmpty())
+                )
+            }
+        } finally {
+            releaseRecordingResources()
         }
     }
 
     private fun discardRecording() {
+        if (state.value.isSaving) return
+        startJob?.cancel()
+        releaseRecordingResources()
         state.value.filePath?.let { File(it).delete() }
-        _state.update { it.copy(filePath = null) }
+        _state.update { it.copy(isStarting = false, isRecording = false, isPaused = false, filePath = null) }
     }
 
     private fun handlePermissionDenied(canShowRationale: Boolean) {
@@ -125,7 +177,9 @@ class RecordViewModel @Inject constructor(
     }
 
     fun saveMetadata(title: String, author: String, coverPath: String?) {
-        val filePath = state.value.filePath ?: return
+        val current = state.value
+        if (current.isRecording || current.isSaving) return
+        val filePath = current.filePath ?: return
         val item = AudioItem(
             title = title,
             author = author,
@@ -134,14 +188,35 @@ class RecordViewModel @Inject constructor(
             createdAt = System.currentTimeMillis(),
             coverImagePath = coverPath
         )
+        _state.update { it.copy(isSaving = true) }
         viewModelScope.launch {
-            audioDao.insertAudio(item)
+            try {
+                audioDao.insertAudio(item)
+                _state.update { it.copy(filePath = null, savedTitle = title, isSaving = false) }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                _state.update {
+                    it.copy(isSaving = false, errorMessage = context.getString(R.string.error_recording_save))
+                }
+                Log.e("RecordVM", "Save error", e)
+            }
+        }
+    }
+
+    private fun releaseRecordingResources() {
+        try {
+            recorder?.release()
+        } finally {
+            recorder = null
+            playbackControllerFuture?.let { MediaController.releaseFuture(it) }
+            playbackControllerFuture = null
         }
     }
 
     override fun onCleared() {
+        releaseRecordingResources()
+        if (state.value.isRecording) state.value.filePath?.let { File(it).delete() }
         super.onCleared()
-        recorder?.release()
-        recorder = null
     }
 }

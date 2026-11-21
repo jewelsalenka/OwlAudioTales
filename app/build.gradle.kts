@@ -87,6 +87,7 @@ dependencies {
     ksp("com.google.dagger:hilt-android-compiler:2.56")
 
     // Media3
+    implementation("androidx.concurrent:concurrent-futures-ktx:1.2.0")
     implementation("androidx.media3:media3-exoplayer:1.10.1")
     implementation("androidx.media3:media3-session:1.10.1")
     implementation("androidx.media3:media3-ui:1.10.1")
